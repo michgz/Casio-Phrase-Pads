@@ -32,7 +32,7 @@ def time_adj(x):
 
 
 
-def process_phr_trak(b, m, track=0, channel=5):
+def process_phr_trak(b, m, track=0, channel=4):
   
   # Interprets b as a phrase, and writes the related MIDI data to a track of the
   # MIDIFile m.
@@ -258,7 +258,7 @@ def process_phr_multiple(d):
       m.addTrackName(i, 0, trk_name)
 
 
-      process_phr_trak(b[j:j+k], m, track=i, channel=5+i)
+      process_phr_trak(b[j:j+k], m, track=i, channel=4+i)
   return m
   
   
