@@ -5,6 +5,10 @@
 
 import sys
 import struct
+import binascii
+
+from midiutil import MIDIFile
+
 
 
 def read_time(b, i):
@@ -21,9 +25,17 @@ def read_time(b, i):
   return t, i
 
 
+def time_adj(x):
+  # Translate from Casio timing (96 ticks per crotchet) to midiutils timing (1.0
+  # ticks per crotchet)
+  return float(x)/96.0
 
 
-def process_phr_trak(b):
+
+def process_phr_trak(b, m, track=0, channel=5):
+  
+  # Interprets b as a phrase, and writes the related MIDI data to a track of the
+  # MIDIFile m.
   
   i = 0
   time = 0
@@ -51,23 +63,35 @@ def process_phr_trak(b):
         bank = struct.unpack('>H', b[i+4:i+6])[0]
         patch = b[i+6]
         bank_msb = bank//128
+        m.addControllerEvent(track, channel, time_adj(time), 0x20, 0)
+        m.addControllerEvent(track, channel, time_adj(time), 0x00, bank_msb)
+        m.addProgramChange(track, channel, time_adj(time), patch)
         ev_len = 5
       elif note == 0x89:
         # Sustain pedal. 01 00 00 = released, 01 00 FF = pressed.
-        pass
+        x = b[i+2]
+        m.addControllerEvent(track, channel, time_adj(time), 0x40, x)
       elif note == 0x97:
         # Sustain button. 01 00 80 = released, 01 00 E0 = pressed.
-        pass
+        x = 0
+        if b[i+2] > 0x80:
+          x = 0xFF
+        m.addControllerEvent(track, channel, time_adj(time), 0x40, x)
       elif note == 0x8B:
         # Soft pedal
-        pass
+        x = b[i+2]
+        m.addControllerEvent(track, channel, time_adj(time), 0x43, x)
       elif note == 0x92:
-        # Pitch bend
+        # Pitch bend. 0x8000 is "no bend", 0xFFFC is maximum upwards bend.
         pitch_bend = struct.unpack('>H', b[i+4:i+6])[0]
+        m.addPitchWheelEvent(track, channel, time_adj(time), (pitch_bend - 0x8000)//4)
         ev_len = 4
       elif note == 0x8A:
         # Sostenuto pedal. 01 00 00 = released, 01 00 FE = pressed.
-        pass
+        x = b[i+2]
+        if b[i+2] >= 0xFE:
+          x = 0xFF
+        m.addControllerEvent(track, channel, time_adj(time), 0x42, x)
       elif note == 0x95:
         #Portamento (time/onoff?)
         pass
@@ -100,7 +124,7 @@ def process_phr_trak(b):
         pass
       elif note == 0x93:
         # Pitch bend range. 01 00 xx .
-        pass
+        m.makeRPNCall(track, channel, time_adj(time), 0x00, 0x00, b[i+2], 0)
       elif note == 0x94:
         # unknown
         pass
@@ -143,12 +167,17 @@ def process_phr_trak(b):
       duration = 256*(0x7F&b[i]) + 1*(0xFF&b[i+1])
       i += 2
       
+      m.addNote(track, channel, note, time_adj(time), duration, velocity)
+      
       note_count += 1
 
 
     
   print("TOTAL TIME = {0}".format(time))
   print("NUMBER OF NOTES = {0}".format(note_count))
+  
+  
+  return m
 
 
 
@@ -158,6 +187,10 @@ def process_phr(b):
   #
   if b[0:4] != b'CPFF':
     raise Exception("Expecting CPFF")
+    
+  trk_name = b[0xC:0x18].decode('ascii')
+  trk_count = 1
+  
   j = 8 + struct.unpack('<I', b[4:8])[0] # Jump forward length of the header portion
   
   if b[j:j+4] != b'TRAK':
@@ -171,7 +204,80 @@ def process_phr(b):
   
   j += 4
   
-  return process_phr_trak(b[j:j+k])
+  m = MIDIFile(trk_count)
+  
+  m.addTimeSignature(0, 0, 4, 2, 8) # 4/4 time. It seems CT-X doesn't allow any other option here.
+  m.addTrackName(0, 0, trk_name)
+
+  
+  process_phr_trak(b[j:j+k], m)
+  return m
+
+
+
+
+
+def extract_from_phrase_set(b):
+  # Extracts 4 individual phrases from a phrase set file.
+  
+  a = []
+  
+  # Skip first 16 bytes
+  i = 16
+  
+  if b[i:i+4] != b'PHSH':
+    raise Exception("Expected PHSH")
+  i += 8
+  
+  while i < len(b):
+  
+    if b[i:i+4] != b'PHRH':
+      raise Exception("Expected PHRH")
+    i += 8
+    
+    crc = struct.unpack('<I', b[i:i+4])[0]
+    i += 4
+    length = struct.unpack('<I', b[i:i+4])[0]
+    i += 4
+    
+    crc_2 = binascii.crc32(b[i:i+length])
+    
+    if crc_2 != crc:
+      raise Exception("CRC mismatch")
+    
+    a.append(b[i:i+length])
+    i += length
+    if b[i:i+4] != b'EODA':
+      raise Exception("Expected EODA")
+      
+    i += 4
+    
+  return a
+  
+
+
+def combine_to_phrase_set(d):
+  # Takes multiple (up to 4) phrases and combines them into the format of a .PHS
+  # file
+  
+  if len(d) > 4:
+    raise Exception("Limit of 4 phrases per set; given {0}".format(len(d)))
+  
+  e = b'CT-X3000\x00\x00\x00\x00\x00\x00\x00\x00'
+  e += b'PHSH' + struct.pack('<I', 0)
+  
+  for i in range(4):
+    if i < len(d):
+      b = d[i]
+    else:
+      b = b''
+      
+    e += b'PHRH' + struct.pack('<3I', 0, binascii.crc32(b), len(b)) + b + b'EODA'
+    
+  return e  
+
+
+
 
 
 
@@ -179,5 +285,8 @@ if __name__=="__main__":
   if len(sys.argv) >= 2:
     with open(sys.argv[1], 'rb') as f:
       b = f.read()
-    process_phr(b)
+    # Extracts the data from a .PHS file, then writes (hopefully!) identical output
+    # to the standard output.
+    d = extract_from_phrase_set(b)
+    sys.stdout.buffer.write(combine_to_phrase_set(d[:2]))
 
