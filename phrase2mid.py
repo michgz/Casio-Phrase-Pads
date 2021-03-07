@@ -173,12 +173,11 @@ def process_phr_trak(b, m, track=0, channel=5):
 
 
     
-  print("TOTAL TIME = {0}".format(time))
-  print("NUMBER OF NOTES = {0}".format(note_count))
+  #print("TOTAL TIME = {0}".format(time))
+  #print("NUMBER OF NOTES = {0}".format(note_count))
   
   
   return m
-
 
 
 
@@ -214,15 +213,64 @@ def process_phr(b):
   return m
 
 
+def process_phr_multiple(d):
+  #Process multiple CPFF wrappers of multiple phrase definitions
+  #
+  
+  trk_count = len(d)
+  if trk_count < 4:
+    trk_count = 4   # Pad to 4 tracks
+  
+  if trk_count > 10:
+    # Not sure what the upper limit is. Probably can't go past 16 because midiutils
+    # can't handle that.
+    
+    raise Exception("Too many tracks ({0})".format(trk_count))
+  
+  m = MIDIFile(trk_count)
+  
+  m.addTimeSignature(0, 0, 4, 2, 8) # 4/4 time. It seems CT-X doesn't allow any other option here.
+  
+  for i in range(trk_count):
+    
+    if i < len(d):
+      
+      b = d[i]
+  
+      if b[0:4] != b'CPFF':
+        raise Exception("Expecting CPFF")
+      
+      trk_name = b[0xC:0x18].decode('ascii')
+      
+      j = 8 + struct.unpack('<I', b[4:8])[0] # Jump forward length of the header portion
+      
+      if b[j:j+4] != b'TRAK':
+        raise Exception("Expecting TRAK")
+        
+      j += 8
+      
+      k = struct.unpack('<I', b[j:j+4])[0] # Length of actual data
+      if j + k > len(b):
+        raise Exception("Corrupt CPFF")
+      
+      j += 4
+      
+      m.addTrackName(i, 0, trk_name)
+
+
+      process_phr_trak(b[j:j+k], m, track=i, channel=5+i)
+  return m
+  
+  
 
 
 
 def extract_from_phrase_set(b):
-  # Extracts 4 individual phrases from a phrase set file.
+  # Extracts 4 individual phrases from a .PHS file contents
   
   a = []
   
-  # Skip first 16 bytes
+  # Skip first 16 bytes -- it will be "CT-X3000" or similar
   i = 16
   
   if b[i:i+4] != b'PHSH':
@@ -285,8 +333,11 @@ if __name__=="__main__":
   if len(sys.argv) >= 2:
     with open(sys.argv[1], 'rb') as f:
       b = f.read()
-    # Extracts the data from a .PHS file, then writes (hopefully!) identical output
-    # to the standard output.
+    # Extracts the data from a .PHS file, then writes the resulting MIDI to
+    # standard output
     d = extract_from_phrase_set(b)
-    sys.stdout.buffer.write(combine_to_phrase_set(d[:2]))
+    m = process_phr_multiple(d[:2])
+    m.writeFile(sys.stdout.buffer)
+    
+    #sys.stdout.buffer.write(combine_to_phrase_set(d[:2]))
 
