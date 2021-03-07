@@ -5,10 +5,10 @@
 A file with extension .PHS saved by the CT-X keyboard can be converted to a standard MIDI file by calling (for example):
 
 ```
-python phrase2mid.py PHRSET01.PHS > 01.MID
+> python phrase2mid.py PHRSET01.PHS > 01.MID
 ```
 
-It also handles phrase sets read directly from the keyboard. The following snippet of Python code will do that (note that the downloading portion of this will only work under Linux - the processing from phrase to MIDI is agnostic to Linux/Windows):
+It also handles phrase sets read directly from the keyboard. The following snippet of Python code will do that (note that the downloading portion of this will only work under Linux. The processing from phrase to MIDI is agnostic to Linux/Windows):
 
 ```python
 from internal.sysex_comms_internal import download_ac7_internal
@@ -17,7 +17,7 @@ from phrase2mid import process_phr
 PHR_NUM=4 # 0-3 are Phrase Set 01, 4-7 are Phrase Set 02, ... 96-99 are Phrase Set 25.
 y = download_ac7_internal(PHR_NUM, category=35, memory=1)
 with open('MyPhrase.MID', 'wb') as f:
-  f.write(process_phr(y))
+  process_phr(y).writeFile(f)
 ```
 
 ## Prerequisites
