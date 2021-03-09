@@ -48,17 +48,31 @@ def process_mid(c):
   # Start off with some boilerplate. Most of these event are not yet identified.
   # To be refined later.
   
-  f += b'\x00\x91\x00\x00\x00'
-  f += event(0x84, 0, b'\x00\x00\x00\x00')  # patch/bank. This is GM PIANO 1
-  f += event(0x91, 0, b'\x00\xFF')
-  f += event(0x87, 0, b'\x00\x80')
-  f += event(0x8E, 0, b'\x00\x50')
-  f += event(0x8F, 0, b'\x00\x00')
-  f += event(0x90, 0, b'\x00\x00')
+  # Set to GM PIANO 1
+  bank = 0
+  patch = 0
+  f += event(0x84, 0, b'\x00' + struct.pack('>H', 128*bank) + struct.pack('B', patch))  # patch/bank
+  f += event(0x91, 0, b'\x00' + struct.pack('B', 255)) # Volume/expression. Values 0-255
+  f += event(0x87, 0, b'\x00' + struct.pack('B', 128)) # Pan. Values 0-255.
+  f += event(0x8E, 0, b'\x00' + struct.pack('B', 0))   # Reverb send
+  f += event(0x8F, 0, b'\x00' + struct.pack('B', 0))   # Chorus send
+  f += event(0x90, 0, b'\x00' + struct.pack('B', 0))   # Delay send
   f += event(0x93, 0, b'\x00\x02')  # pitch bend range
-  f += event(0x94, 0, b'\x00\x00')
-  f += event(0x95, 0, b'\x00\x00')
-  f += event(0x97, 0, b'\x00\x80')
+  f += event(0x94, 0, b'\x00' + struct.pack('B', 0))  # Portamento
+  f += event(0x95, 0, b'\x00' + struct.pack('B', 0))  # Portamento
+  f += event(0x97, 0, b'\x00' + struct.pack('B', 128))  # Release time. Values 0-255, 2x those used in keyboard GUI?
+  
+  
+  # Some other values tried with Bank 34 Patch 96 ("EDM THEME SYNTH 2"):
+  # 0x92 - v. strange effect!
+  # 0x96 - whistling sound
+  # 0x98 - whirling sound
+  # 0x99 - filter (default 0x80)
+  # 0x9A - filter (default 0x80)
+  #  .. etc
+  # 0x83 - tempo (bpm)
+  
+
   
   latest_absolute_time = 0.
   
@@ -77,7 +91,7 @@ def process_mid(c):
           break
       if duration > 0:
         if FORMAT_SPEC == 2:
-          evt_to_add = event(evt['note'], encode_time(time), struct.pack('2B', 0x85, evt['velocity']) + encode_duration(duration)) + b'\x40'
+          evt_to_add = event(evt['note'], encode_time(time), struct.pack('2B', 0x85, evt['velocity']) + encode_duration(duration)) + struct.pack('B', 0x40)
         else:
           evt_to_add = event(evt['note'], encode_time(time), struct.pack('2B', 0, evt['velocity']) + encode_duration(duration))
       else:
@@ -117,7 +131,8 @@ def process_mid(c):
   e += '            '.encode('ascii')   # Name -- for now, leave empty
   e += b'\x00'   # Possibly null-terminator for the name
   e += b'TRAK'
-  e += b'\x00\x03\x00\x00'   # Not sure?
+  #e += b'\x00\x03\x00\x00'
+  e += b'\x80\x01\x00\x00'
   e += struct.pack('<I', len(f))
   e += f
   
@@ -145,6 +160,15 @@ def combine_to_phrase_set(d):
     e += b'PHRH' + struct.pack('<3I', 0, binascii.crc32(b), len(b)) + b + b'EODA'
     
   return e  
+
+
+
+def process_midi(b):
+  # Takes the contents of a standard MIDI file as input. Returns a list of
+  # phrase data as output.
+  m = midifile_read(b)
+  p = process_mid(m[1])
+  return [p]
 
 
 
