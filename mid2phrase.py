@@ -9,14 +9,25 @@ import binascii
 from internal.midifiles import midifile_read
 
 
+# 1 = as recorded by the CT-X keyboard as user phrases
+# 2 = as used in the preset phrases
+# It's not yet clear why there are two different formats
+FORMAT_SPEC = 1
+
+
 
 def event(event_type, time, data):
   if type(time) is int:
     time = struct.pack('B', time)
-  return time + struct.pack('2B', event_type, 0 if event_type < 0x80 else 1) + (b'' if event_type < 0x80 else b'\x00') + data
+  return time + struct.pack('B', event_type) + (b'' if event_type < 0x80 else b'\x01') + data
 
 def encode_duration(z):
-  return struct.pack('>H', 0x8000 + z)
+  if FORMAT_SPEC == 2:
+    if z >= 128:
+      raise Exception("Duration too long for format spec 2")
+    return struct.pack('B', z)
+  else:
+    return struct.pack('>H', 0x8000 + z)
 
 def encode_time(z):
   # Similar to MIDI time encoding, but with bytes in opposite order.
@@ -38,16 +49,16 @@ def process_mid(c):
   # To be refined later.
   
   f += b'\x00\x91\x00\x00\x00'
-  f += event(0x84, 0, b'\x00\x00\x00')  # patch/bank. This is GM PIANO
-  f += event(0x91, 0, b'\xFF')
-  f += event(0x87, 0, b'\x80')
-  f += event(0x8E, 0, b'\x50')
-  f += event(0x8F, 0, b'\x00')
-  f += event(0x90, 0, b'\x00')
-  f += event(0x93, 0, b'\x02')  # pitch bend range
-  f += event(0x94, 0, b'\x00')
-  f += event(0x95, 0, b'\x00')
-  f += event(0x97, 0, b'\x80')
+  f += event(0x84, 0, b'\x00\x00\x00\x00')  # patch/bank. This is GM PIANO 1
+  f += event(0x91, 0, b'\x00\xFF')
+  f += event(0x87, 0, b'\x00\x80')
+  f += event(0x8E, 0, b'\x00\x50')
+  f += event(0x8F, 0, b'\x00\x00')
+  f += event(0x90, 0, b'\x00\x00')
+  f += event(0x93, 0, b'\x00\x02')  # pitch bend range
+  f += event(0x94, 0, b'\x00\x00')
+  f += event(0x95, 0, b'\x00\x00')
+  f += event(0x97, 0, b'\x00\x80')
   
   latest_absolute_time = 0.
   
@@ -65,7 +76,10 @@ def process_mid(c):
           duration = round((c[j]['absolute_time'] - evt['absolute_time'])*4.0)
           break
       if duration > 0:
-        evt_to_add = event(evt['note'], encode_time(time), struct.pack('B', evt['velocity']) + encode_duration(duration))
+        if FORMAT_SPEC == 2:
+          evt_to_add = event(evt['note'], encode_time(time), struct.pack('2B', 0x85, evt['velocity']) + encode_duration(duration)) + b'\x40'
+        else:
+          evt_to_add = event(evt['note'], encode_time(time), struct.pack('2B', 0, evt['velocity']) + encode_duration(duration))
       else:
         # Not found a NoteOff event. Not sure what's gone wrong? For now just ignore
         pass
@@ -74,13 +88,13 @@ def process_mid(c):
     elif evt['event'] == 'control_change':
       if evt['controller'] == 0x40:
         # Sustain pedal
-        evt_to_add = event(0x89, encode_time(time), evt['value'])
+        evt_to_add = event(0x89, encode_time(time), struct.pack('2B', 0, evt['value']))
       elif evt['controller'] == 0x43:
         # Soft pedal
-        evt_to_add = event(0x8B, encode_time(time), 0xE0 if evt['value'] >= 0x80 else 0x80)
+        evt_to_add = event(0x8B, encode_time(time), b'\x00\xE0' if evt['value'] >= 0x80 else b'\x00\x80')
       elif evt['controller'] == 0x43:
         # Sostenuto pedal
-        evt_to_add = event(0x8A, encode_time(time), max(0xFE, evt['value']))
+        evt_to_add = event(0x8A, encode_time(time), struct.pack('2B', 0, max(0xFE, evt['value'])))
         
     if evt_to_add != b'':
       # Only update the time if there's something to add
