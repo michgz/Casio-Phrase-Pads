@@ -1,0 +1,40 @@
+Internal numbering of the chord flavours:
+
+ 0   M
+ 1   m
+ 2   sus4
+ 3   aug
+ 4   dim
+ 5   b5
+ 6   7
+ 7   m7
+ 8   M7
+ 9   mM7
+10   dim7
+11   dim M7
+12   m7b5
+13   M7b5
+14   aug7
+15   aug m7
+16   6
+17   m6
+18   sus4 7
+19   add9
+20   m add9
+21   6 9
+22   m6 9
+23   7b5
+24   sus2
+25   7(b9)
+26   7(9)
+27   7(#9)
+28   7(#11)
+29   7(b13)
+30   7(13)
+31   m7(9)
+32   m7(11)
+33   M7(9)
+34   mM7(9)
+35   5
+36   8
+
