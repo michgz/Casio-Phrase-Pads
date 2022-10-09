@@ -95,7 +95,10 @@ def process_mid(c):
   
   
 
-  if True:
+  if False:
+    
+    # This creates a song which plays each of the chord types in turn. Was used
+    # for doing experiments into rhythms, is not really useful for anything else.
     
     time = 0
     
