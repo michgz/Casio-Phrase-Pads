@@ -75,10 +75,15 @@ def process_mid(c):
               {'N': 2, 'BankPatch': (1, 32), 'Vol': 127, 'Pan': 0, 'Rev': 7,  'Cho': 0,   'Del': 0},     # SONG SYSTEM 3
               {'N': 3, 'BankPatch': (1, 50), 'Vol': 127, 'Pan': 0, 'Rev': 32, 'Cho': 72,  'Del': 0},     # SONG SYSTEM 4
               {'N': 4, 'BankPatch': (0,  0), 'Vol': 100, 'Pan': 0, 'Rev': 40, 'Cho': 0,   'Del': 0},     # SONG SYSTEM 5
-              {'N': 0x1D,                    'Vol': 75,  'Pan': 0, 'Rev': 80, 'Cho': 0,   'Del': 0},     # SONG SYSTEM 6
-              {'N': 0x1E,                    'Vol': 50,  'Pan': 0, 'Rev': 30, 'Cho': 127, 'Del': 0},     # SONG SYSTEM 7
-              {'N': 0x1F,                    'Vol': 120, 'Pan': 0, 'Rev': 0,  'Cho': 0,   'Del': 0},     # SONG SYSTEM 8
-              {'N': 0x20,                    'Vol': 90,  'Pan': 0, 'Rev': 50, 'Cho': 20,  'Del': 0}]     # SONG SYSTEM 9
+              {'N': 0x1D,                    'Vol': 75,  'Pan': 0, 'Rev': 80, 'Cho': 0,   'Del': 0},     # SONG SYSTEM 6 (Phrase pad 1)
+              {'N': 0x1E,                    'Vol': 50,  'Pan': 0, 'Rev': 30, 'Cho': 127, 'Del': 0},     # SONG SYSTEM 7 (Phrase pad 2)
+              {'N': 0x1F,                    'Vol': 120, 'Pan': 0, 'Rev': 0,  'Cho': 0,   'Del': 0},     # SONG SYSTEM 8 (Phrase pad 3)
+              {'N': 0x20,                    'Vol': 90,  'Pan': 0, 'Rev': 50, 'Cho': 20,  'Del': 0}]     # SONG SYSTEM 9 (Phrase pad 4)
+
+
+  # Other channel numbers:
+  #  5-20      SONG SOLO 1-16
+  #  21-28     RHYTHM PARTS
 
 
   for CC in CHANNELS:
