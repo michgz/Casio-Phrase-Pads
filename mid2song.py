@@ -107,10 +107,14 @@ def process_mid(c):
 
   # Set up the Rhythm as "001 E DANCE POP"
 
+  # AF: select rhythm
+  #  see Documentation/Rhythm Numbering CTX3000.txt
+
   f += b'\x00\xAF\x01\x04\x1F'
   f += b'\x00\xB0\x01\x02\x00'
   
-  # B0:    00 00    stop rhythm
+  # B0: start/stop rhythm
+  #        00 00    stop rhythm
   #        01 00    Intro
   #        02 00    Var 1
   #        02 01    Var 2
@@ -133,8 +137,16 @@ def process_mid(c):
     # Step through each chord type.
     for i in range(37):   
     
+    
+      # AE: play accompaniment chord.
+      #   byte 0: Chord root (0-11 corresponding to C-B)
+      #   byte 1: Chord flavour (0-36  - see Documentation/Chord flavours.txt)
+      #   byte 2: Bass note (0-11 corresponding to C-B, or 15 = Root note)
+      #   byte 3: ? (default 0)
+      #   byte 4: ? (default 0x74)
+    
       time_d = 768
-      f += event(0xAE, encode_time(time_d), b'\x02' + struct.pack('B', i) + struct.pack('3B', 15, 0, 0x74))
+      f += event(0xAE, encode_time(time_d), struct.pack('B', 2) + struct.pack('B', i) + struct.pack('3B', 15, 0, 0x74))
       time += time_d
     
     
