@@ -161,12 +161,15 @@ def process_mid(c):
         # Only update the time if there's something to add
         f += evt_to_add
         latest_absolute_time = evt['absolute_time']
+
+    if len(c)==0:
+      last_time_int = 4*24
+    else:
+      last_time = max(evt['absolute_time'] for evt in c)
+      # Round up to nearest bar. Phrases can only be in 4/4 time, so don't need to
+      # worry too much.
     
-    last_time = max(evt['absolute_time'] for evt in c)
-    # Round up to nearest bar. Phrases can only be in 4/4 time, so don't need to
-    # worry too much.
-    
-    last_time_int = ceil(float(last_time)/(4.0*24.0)) * (4*24)
+      last_time_int = ceil(float(last_time)/(4.0*24.0)) * (4*24)
     
     # Finish off
     f += encode_time(round((last_time_int - latest_absolute_time)*4.0)) + b'\x80\x01'
@@ -231,9 +234,12 @@ if __name__=="__main__":
   if len(sys.argv) >= 2:
     with open(sys.argv[1], 'rb') as f:
       b = f.read()
-    # Extracts the data from a .MID file, then writes the resulting Song
-    # data to standard output
-    m = midifile_read(b)
-    p = process_mid(m[1])
-    sys.stdout.buffer.write(combine_to_song(p))
+      # Extracts the data from a .MID file, then writes the resulting Song
+      # data to standard output
+      m = midifile_read(b)
+  else:
+      m = [b'', b'']
+
+  p = process_mid(m[1])
+  sys.stdout.buffer.write(combine_to_song(p))
 
