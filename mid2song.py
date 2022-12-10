@@ -53,10 +53,10 @@ def process_mid(c):
   
   # Set up each of the "Song System" parts
   
-  
+  TEMPO_BPM = 120
   
   f += event(0x82, 0, struct.pack('BB', 4, 4))
-  f += event(0x83, 0, struct.pack('BB', 0x3c, 0))
+  f += event(0x83, 0, struct.pack('>H', 0x80*TEMPO_BPM))
   f += event(0xCB, 0, struct.pack('BB', 0, 23))
   f += event(0xD1, 0, struct.pack('BB', 0, 16))
   f += event(0xDA, 0, struct.pack('BB', 0, 20))
@@ -110,6 +110,17 @@ def process_mid(c):
   f += b'\x00\xAF\x01\x04\x1F'
   f += b'\x00\xB0\x01\x02\x00'
   
+  # B0:    00 00    stop rhythm
+  #        01 00    Intro
+  #        02 00    Var 1
+  #        02 01    Var 2
+  #        02 02    Var 3
+  #        02 03    Var 4
+  #        03 00    Fill 1
+  #        03 01    Fill 2
+  #        03 02    Fill 3
+  #        03 03    Fill 4
+  #        04 00    Ending
   
 
   if False:
