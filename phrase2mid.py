@@ -195,7 +195,7 @@ def process_phr(b):
   if b[j:j+4] != b'TRAK':
     raise Exception("Expecting TRAK")
     
-  j += 8
+  j += 8  # Skip 'TRAK' and a word containing the length of the phrase in ticks (96 ticks per crotchet)
   
   k = struct.unpack('<I', b[j:j+4])[0] # Length of actual data
   if j + k > len(b):
