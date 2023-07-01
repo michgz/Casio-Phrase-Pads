@@ -116,9 +116,9 @@ def process_mid(c):
       latest_absolute_time = evt['absolute_time']
   
   last_time = max(evt['absolute_time'] for evt in c)
+  
   # Round up to nearest bar. Phrases can only be in 4/4 time, so don't need to
   # worry too much.
-  
   last_time_int = ceil(float(last_time)/(4.0*24.0)) * (4*24)
   
   # Finish off
@@ -131,8 +131,7 @@ def process_mid(c):
   e += '            '.encode('ascii')   # Name -- for now, leave empty
   e += b'\x00'   # Possibly null-terminator for the name
   e += b'TRAK'
-  #e += b'\x00\x03\x00\x00'
-  e += b'\x80\x01\x00\x00'
+  e += struct.pack('<I', round(last_time_int*4.0))   # Length in ticks (96 per crotchet, 4*96 per bar since we are always in 4/4 time)
   e += struct.pack('<I', len(f))
   e += f
   
