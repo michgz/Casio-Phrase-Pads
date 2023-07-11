@@ -60,10 +60,11 @@ def process_phr_trak(b, m, track=0, channel=4):
       ev_len = 3
       if note == 0x84:
         # Set patch/bank
-        bank = struct.unpack('>H', b[i+4:i+6])[0]
-        patch = b[i+6]
+        bank = struct.unpack('>H', b[i+2:i+4])[0]
+        patch = b[i+4]
         bank_msb = bank//128
-        m.addControllerEvent(track, channel, time_adj(time), 0x20, 0)
+        bank_lsb = 0   # Or bank%128
+        m.addControllerEvent(track, channel, time_adj(time), 0x20, bank_lsb)
         m.addControllerEvent(track, channel, time_adj(time), 0x00, bank_msb)
         m.addProgramChange(track, channel, time_adj(time), patch)
         ev_len = 5
@@ -311,6 +312,6 @@ if __name__=="__main__":
     # Extracts the data from a .PHS file, then writes the resulting MIDI to
     # standard output
     d = extract_from_phrase_set(b)
-    m = process_phr_multiple(d[:2])
+    m = process_phr_multiple(d[:])
     m.writeFile(sys.stdout.buffer)
 
