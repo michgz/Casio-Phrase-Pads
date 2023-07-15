@@ -68,6 +68,26 @@ def process_phr_trak(b, m, track=0, channel=4):
         m.addControllerEvent(track, channel, time_adj(time), 0x20, bank_lsb)
         m.addProgramChange(track, channel, time_adj(time), patch)
         ev_len = 5
+      elif note == 0x91:
+        # Set volume. Here we use MIDI effect 7 ("Volume"), but 11 ("Expression") also works
+        val = struct.unpack('>B', b[i+2:i+3])[0] # 0-255
+        m.addControllerEvent(track, channel, time_adj(time), 0x07, val//2)
+      elif note == 0x87:
+        # Set pan
+        val = struct.unpack('>B', b[i+2:i+3])[0] # 0-255
+        m.addControllerEvent(track, channel, time_adj(time), 0x0A, val//2)
+      elif note == 0x8E:
+        # Set reverb send
+        val = struct.unpack('>B', b[i+2:i+3])[0] # 0-254
+        m.addControllerEvent(track, channel, time_adj(time), 0x5B, val//2)
+      elif note == 0x8F:
+        # Set chorus send
+        val = struct.unpack('>B', b[i+2:i+3])[0] # 0-254
+        m.addControllerEvent(track, channel, time_adj(time), 0x5D, val//2)
+      elif note == 0x90:
+        # Set delay send
+        val = struct.unpack('>B', b[i+2:i+3])[0] # 0-254
+        m.addControllerEvent(track, channel, time_adj(time), 0x5E, val//2)
       elif note == 0x89:
         # Sustain pedal. 01 00 00 = released, 01 00 FF = pressed.
         x = b[i+2]
