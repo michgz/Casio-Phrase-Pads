@@ -10,6 +10,11 @@ import binascii
 from midiutil import MIDIFile
 
 
+# 1 = as recorded by the CT-X keyboard as user phrases
+# 2 = as used in the preset phrases
+# It's not yet clear why there are two different formats
+FORMAT_SPEC = 1
+
 
 def read_time(b, i):
   
@@ -122,23 +127,8 @@ def process_phr_trak(b, m, track=0, channel=4):
       elif note == 0x8D:
         # unknown?
         ev_len = 4
-      elif note == 0x87:
-        # unknown
-        pass
       elif note == 0x88:
-        # unknown
-        pass
-      elif note == 0x91:
-        # unknown
-        pass
-      elif note == 0x8E:
-        # unknown
-        pass
-      elif note == 0x8F:
-        # unknown
-        pass
-      elif note == 0x90:
-        # unknown
+        # loudness - possibly Expression? Default 254.
         pass
       elif note == 0x92:
         # unknown
@@ -185,10 +175,13 @@ def process_phr_trak(b, m, track=0, channel=4):
       velocity = b[i]
       i += 1
       
-      duration = 256*(0x7F&b[i]) + 1*(0xFF&b[i+1])
+      if FORMAT_SPEC == 2:
+          duration = 0x7F&b[i]
+      else:
+          duration = 256*(0x7F&b[i]) + 1*(0xFF&b[i+1]) 
       i += 2
       
-      m.addNote(track, channel, note, time_adj(time), duration, velocity)
+      m.addNote(track, channel, note, time_adj(time), time_adj(duration), velocity)
       
       note_count += 1
 
