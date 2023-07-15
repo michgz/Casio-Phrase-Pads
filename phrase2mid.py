@@ -204,9 +204,10 @@ def process_phr(b):
   
   j += 4
   
-  m = MIDIFile(trk_count)
+  m = MIDIFile(trk_count, ticks_per_quarternote=480)  # 480 TPQN is what CT-X uses in its SMF conversions
   
-  m.addTimeSignature(0, 0, 4, 2, 8) # 4/4 time. It seems CT-X doesn't allow any other option here.
+  m.addTimeSignature(0, 0, 4, 2, 24) # 4/4 time. It seems CT-X doesn't allow any other option here. 24 clocks-per-tick is what CT-X uses in its SMF conversions
+  m.addTempo(0, 0, 120) # Helpful to have something defined here
   m.addTrackName(0, 0, trk_name)
 
   
