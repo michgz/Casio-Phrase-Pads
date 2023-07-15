@@ -64,8 +64,8 @@ def process_phr_trak(b, m, track=0, channel=4):
         patch = b[i+4]
         bank_msb = bank//128
         bank_lsb = 0   # Or bank%128
-        m.addControllerEvent(track, channel, time_adj(time), 0x20, bank_lsb)
         m.addControllerEvent(track, channel, time_adj(time), 0x00, bank_msb)
+        m.addControllerEvent(track, channel, time_adj(time), 0x20, bank_lsb)
         m.addProgramChange(track, channel, time_adj(time), patch)
         ev_len = 5
       elif note == 0x89:
@@ -228,9 +228,11 @@ def process_phr_multiple(d):
     
     raise Exception("Too many tracks ({0})".format(trk_count))
   
-  m = MIDIFile(trk_count)
+  m = MIDIFile(trk_count, ticks_per_quarternote=480)  # 480 TPQN is what CT-X uses in its SMF conversions
   
-  m.addTimeSignature(0, 0, 4, 2, 8) # 4/4 time. It seems CT-X doesn't allow any other option here.
+  m.addTimeSignature(0, 0, 4, 2, 24) # 4/4 time. It seems CT-X doesn't allow any other option here. 24 clocks-per-tick is what CT-X uses in its SMF conversions
+  m.addTempo(0, 0, 120) # Helpful to have something defined here
+  
   
   for i in range(trk_count):
     
